@@ -1,0 +1,38 @@
+__author__ = 'lzy'
+
+from keras.applications import ResNet50
+from keras.models import Sequential
+from keras.layers import Dense
+import numpy as np
+import os
+import cv2
+
+
+def score(model, img_path, target_size=(224, 224), mode='caffe'):
+    img = cv2.imread(img_path)
+    img = cv2.resize(img, target_size)
+    img = np.array(img, dtype=np.float32)
+    if mode == 'caffe':
+        img[:, :, 0] -= 103.939
+        img[:, :, 1] -= 116.779
+        img[:, :, 2] -= 123.68
+    elif mode == 'tf':
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = img / 127.5 - 1.0
+    img = np.expand_dims(img, axis=0)
+    scores = model.predict_on_batch(img)
+    print(scores)
+
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+target_size = (224, 224)
+
+resnet = ResNet50(include_top=False, pooling='avg')
+model = Sequential()
+model.add(resnet)
+model.add(Dense(1, activation='sigmoid'))
+model.trainable = False
+model.load_weights('weights/resnet50_weights.hdf5')
+
+score(model, 'test.jpg')
